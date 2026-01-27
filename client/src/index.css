@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-pastel-pink: #fff1f2;
+  --color-pastel-blue: #eff6ff;
+  --color-pastel-green: #f0fdf4;
+  --color-pastel-yellow: #fefce8;
+  --color-text-main: #1a1a1a;
+  --color-text-muted: #6b7280;
+
+  /* Fonts */
+  --font-sans: "Inter", sans-serif;
+  --font-serif: "Zen Old Mincho", serif;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-text-main font-sans antialiased;
+  }
+}

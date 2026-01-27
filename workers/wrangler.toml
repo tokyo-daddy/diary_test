@@ -1,0 +1,13 @@
+name = "diary-app-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "diary-db"
+database_id = "a4239865-243b-405d-9a78-34f241891144"
+
+[vars]
+SESSION_SECRET = "your-random-secret-key-change-this"

@@ -1,0 +1,15 @@
+{
+    "name": "diary-app-workers",
+    "version": "1.0.0",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy"
+    },
+    "dependencies": {
+        "hono": "^3.11.7",
+        "bcryptjs": "^2.4.3"
+    },
+    "devDependencies": {
+        "wrangler": "^3.22.1"
+    }
+}
