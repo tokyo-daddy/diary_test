@@ -1,41 +1,22 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8787/api',
-    withCredentials: false // Workersではcredentialsは使わない
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    withCredentials: true // Cookie-based session authentication
 });
 
-// セッションIDをローカルストレージで管理
-let sessionId = localStorage.getItem('sessionId');
-
-// リクエストインターセプター
-api.interceptors.request.use((config) => {
-    if (sessionId) {
-        config.headers['X-Session-ID'] = sessionId;
-    }
-    return config;
-});
-
-// レスポンスインターセプター
+// レスポンスインターセプター（エラーハンドリング用）
 api.interceptors.response.use(
-    (response) => {
-        // ログイン時にセッションIDを保存
-        if (response.data.data?.sessionId) {
-            sessionId = response.data.data.sessionId;
-            localStorage.setItem('sessionId', sessionId);
-        }
-        return response;
-    },
+    (response) => response,
     (error) => {
-        // 401エラー時にセッションIDをクリア
+        // 401エラー時の処理（必要に応じてログインページへリダイレクト）
         if (error.response?.status === 401) {
-            sessionId = null;
-            localStorage.removeItem('sessionId');
             // 必要に応じてログインページへリダイレクトなどの処理を追加
         }
         return Promise.reject(error);
     }
 );
+
 
 // 認証API
 export const authAPI = {

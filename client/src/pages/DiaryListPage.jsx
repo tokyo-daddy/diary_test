@@ -38,41 +38,51 @@ export default function DiaryListPage() {
 
     return (
         <Layout>
-            <div className="space-y-2">
+            <div className="space-y-8">
                 {diaries.length === 0 ? (
                     <div className="text-center py-20">
                         <p className="text-gray-400 font-serif mb-4">まだ日記がありません</p>
-                        <p className="text-sm text-gray-400">右下のボタンから最初の日記を書いてみましょう</p>
+                        <p className="text-sm text-gray-400">右上のボタンから最初の日記を書いてみましょう</p>
+
                     </div>
                 ) : (
-                    <div className="flex flex-col">
-                        {diaries.map(diary => (
-                            <DiaryCard key={diary.id} diary={diary} currentUserId={user.id} />
-                        ))}
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+                            {diaries.map(diary => (
+                                <DiaryCard
+                                    key={diary.id}
+                                    diary={diary}
+                                    currentUserId={user.id}
+                                    onDeleteSuccess={fetchData}
+                                />
+                            ))}
+                        </div>
                     </div>
                 )}
+
             </div>
+
 
             {/* TODO: Handle Drafts better or keep them simple? For now hidden or need a section */}
             {drafts.length > 0 && (
-                <div className="mt-8 pt-8 border-t border-gray-100">
-                    <h2 className="text-sm font-bold text-gray-400 mb-4 text-center">下書き</h2>
-                    <div className="space-y-4">
-                        {drafts.map(draft => (
-                            <Link
-                                key={draft.id}
-                                to={`/pairs/${pairId}/diaries/${draft.id}/edit`}
-                                className="block bg-white border border-gray-200 rounded-xl p-4 opacity-75 hover:opacity-100"
-                            >
-                                <div className="font-bold text-sm mb-1">{draft.title}</div>
-                                <div className="text-xs text-gray-400">
-                                    {new Date(draft.created_at).toLocaleDateString()}
-                                </div>
-                            </Link>
-                        ))}
+                <div className="mt-16 pt-16 border-t border-gray-100">
+                    <h2 className="text-sm font-bold text-gray-400 mb-8 text-center uppercase tracking-[0.2em]">下書き</h2>
+                    <div className="max-w-6xl mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 opacity-80 hover:opacity-100 transition-opacity">
+                            {drafts.map(draft => (
+                                <DiaryCard
+                                    key={draft.id}
+                                    diary={draft}
+                                    currentUserId={user.id}
+                                    onDeleteSuccess={fetchData}
+                                    to={`/pairs/${pairId}/diaries/${draft.id}/edit`}
+                                />
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
+
 
             <div className="h-20"></div> {/* Spacer for FAB */}
             <FloatingActionButton to={`/pairs/${pairId}/diaries/new`} />

@@ -1,42 +1,140 @@
-import { Link } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { diariesAPI } from '../api';
 
-export default function DiaryCard({ diary, currentUserId }) {
-    // Deterministic color selection based on diary ID
-    const colors = [
-        'bg-pastel-pink',
-        'bg-pastel-blue',
-        'bg-pastel-green',
-        'bg-pastel-yellow'
-    ];
-    // Use modulo to cycle through colors. Ensure id is treated as number.
-    const colorIndex = (typeof diary.id === 'string' ? diary.id.charCodeAt(0) : diary.id) % colors.length;
-    const bgColor = colors[colorIndex] || colors[0];
+export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to }) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef(null);
+    const navigate = useNavigate();
+
+    const linkDestination = to || `/pairs/${diary.pair_id}/diaries/${diary.id}`;
+
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleDelete = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!window.confirm('本当にこの日記を削除しますか？')) return;
+
+        try {
+            await diariesAPI.delete(diary.pair_id, diary.id);
+            if (onDeleteSuccess) onDeleteSuccess();
+        } catch (error) {
+            console.error(error);
+            alert('削除に失敗しました');
+        }
+        setIsMenuOpen(false);
+    };
+
+    const handleEdit = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/pairs/${diary.pair_id}/diaries/${diary.id}/edit`);
+    };
+
+    const toggleMenu = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsMenuOpen(!isMenuOpen);
+    };
+
+    // Date formatting: 2026/1/28
+    const formattedDate = new Date(diary.created_at).toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+    });
 
     return (
-        <Link
-            to={`/pairs/${diary.pair_id}/diaries/${diary.id}`}
-            className={`block ${bgColor} rounded-3xl p-6 mb-6 transition-transform hover:scale-[1.02] active:scale-95`}
-        >
-            <div className="flex justify-between items-baseline mb-4 text-xs tracking-wider text-text-muted">
-                <span className="font-sans">
-                    {new Date(diary.created_at).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.')}
-                </span>
-                <span className="uppercase">
-                    • BY {diary.author_username}
-                </span>
+        <div className="relative group">
+            {/* Blue Thumbnail Container */}
+            <Link
+                to={linkDestination}
+
+                className="block relative aspect-[4/3] bg-[#eff6ff] rounded-[32px] p-6 mb-4 transition-all hover:shadow-lg hover:translate-y-[-4px]"
+            >
+                {/* Three dots menu button */}
+                <button
+                    onClick={toggleMenu}
+                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors z-20"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="12" cy="5" r="1"></circle>
+                        <circle cx="12" cy="19" r="1"></circle>
+                    </svg>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isMenuOpen && (
+                    <div
+                        ref={menuRef}
+                        className="absolute top-12 right-4 bg-white rounded-2xl shadow-xl py-2 w-48 z-30 ring-1 ring-black ring-opacity-5 animate-fade-in"
+                    >
+                        <button
+                            onClick={handleEdit}
+                            className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                            <svg className="mr-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            編集する
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="w-full flex items-center px-4 py-3 text-sm text-red-400 hover:bg-red-50 transition-colors"
+                        >
+
+                            <svg className="mr-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                            ごみ箱にいれる
+                        </button>
+                    </div>
+                )}
+
+                {/* Preview "Paper" */}
+                <div className="w-full h-full bg-white rounded-lg shadow-sm flex flex-col items-center pt-8 px-6 overflow-hidden">
+                    <div className="w-full text-[10px] font-bold text-gray-800 mb-2 truncate text-center">
+                        {diary.title}
+                    </div>
+                    {/* Content Preview - Reflecting layout via HTML rendering */}
+                    <div className="w-full text-[5px] text-gray-400 leading-[1.3] text-left opacity-60 overflow-hidden relative h-full">
+                        <div
+                            className="mini-prose"
+                            dangerouslySetInnerHTML={{ __html: diary.content }}
+                        />
+                        {/* Gradient mask to hide the cut-off nicely */}
+                        <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
+                    </div>
+                </div>
+
+
+            </Link>
+
+            {/* Info below card */}
+            <div className="px-2">
+                <h3 className="text-sm font-bold text-gray-800 mb-1 truncate">
+                    {diary.title}
+                </h3>
+                <p className="text-xs text-gray-400">
+                    {formattedDate}
+                </p>
             </div>
-
-            <h3 className="text-lg font-bold text-gray-900 mb-3 font-sans">
-                {diary.title}
-            </h3>
-
-            <p className="text-gray-700 leading-relaxed text-sm mb-4 line-clamp-3 font-sans opacity-90">
-                {diary.content}
-            </p>
-
-            <div className="text-right text-gray-400">
-                <span className="text-xl leading-none">...</span>
-            </div>
-        </Link>
+        </div>
     );
 }

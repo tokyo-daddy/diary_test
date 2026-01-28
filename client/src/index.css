@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
 
 @theme {
   /* Colors */
@@ -18,4 +20,29 @@
   body {
     @apply bg-gray-50 text-text-main font-sans antialiased;
   }
+}
+
+/* Tiptap Placeholder Styles */
+.tiptap p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Ensure editor takes full width/height as needed */
+.tiptap {
+  min-height: 50vh;
+}
+
+/* Mini prose for thumbnail preview */
+.mini-prose p {
+  margin-bottom: 2px !important;
+}
+
+.mini-prose br {
+  display: block;
+  content: "";
+  margin-top: 1px;
 }

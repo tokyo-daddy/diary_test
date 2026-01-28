@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { diariesAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
+import TiptapEditor from '../components/TiptapEditor';
 
 export default function DiaryDetailPage() {
     const { pairId, diaryId } = useParams();
@@ -40,38 +41,46 @@ export default function DiaryDetailPage() {
         }
     };
 
-    if (loading) return <Layout><div>Loading...</div></Layout>;
+    if (loading) return <Layout><div className="flex justify-center items-center h-screen text-gray-400">Loading...</div></Layout>;
     if (!diary) return null;
 
     const isAuthor = diary.author_id === user.id;
 
     return (
         <Layout>
-            <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
-                <div className={`p-6 border-b-4 ${isAuthor ? 'border-blue-200 bg-blue-50' : 'border-pink-200 bg-pink-50'}`}>
-                    <div className="flex justify-between items-start mb-4">
-                        <h1 className="text-2xl font-bold text-gray-800">{diary.title}</h1>
-                        <div className="text-right">
-                            <div className="text-sm text-gray-500">
-                                {new Date(diary.created_at).toLocaleString()}
-                            </div>
-                            <div className="text-sm font-bold text-gray-700 mt-1">
-                                by {diary.author_username}
-                            </div>
-                        </div>
-                    </div>
+            <div className="max-w-[1500px] mx-auto px-4 py-8 min-h-[calc(100vh-100px)] flex flex-col relative">
 
+                {/* Back Button - Top Left Corner */}
+                <div className="fixed top-6 left-6 z-50 group">
+
+                    <Link
+                        to={`/pairs/${pairId}/diaries`}
+                        className="flex items-center justify-center w-10 h-10 rounded-full transition-colors hover:bg-black/5"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="19" y1="12" x2="5" y2="12"></line>
+                            <polyline points="12 19 5 12 12 5"></polyline>
+                        </svg>
+                    </Link>
+                    {/* Tooltip */}
+                    <div className="absolute top-12 left-0 whitespace-nowrap bg-white border border-gray-100 px-4 py-2 rounded-2xl shadow-sm text-sm text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        記事一覧へ戻る
+                    </div>
+                </div>
+
+                {/* Actions - Top Right */}
+                <div className="absolute top-4 right-4 flex items-center gap-6 z-10">
                     {isAuthor && (
-                        <div className="flex space-x-2 mt-2">
+                        <div className="flex items-center gap-4">
                             <Link
                                 to={`/pairs/${pairId}/diaries/${diaryId}/edit`}
-                                className="text-sm bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50"
+                                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
                             >
                                 編集
                             </Link>
                             <button
                                 onClick={handleDelete}
-                                className="text-sm bg-white border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50"
+                                className="text-sm text-red-400 hover:text-red-600 transition-colors"
                             >
                                 削除
                             </button>
@@ -79,18 +88,27 @@ export default function DiaryDetailPage() {
                     )}
                 </div>
 
-                <div className="p-8 whitespace-pre-wrap leading-relaxed text-gray-800 text-lg">
-                    {diary.content}
+                {/* Header / Title */}
+                <div className="mb-8 mt-12 text-center">
+                    <h1 className="text-3xl font-bold text-black tracking-wide">
+                        {diary.title}
+                    </h1>
+                    <div className="mt-4 flex justify-center items-center gap-2 text-xs text-gray-400">
+                        <span>{new Date(diary.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' })}</span>
+                        <span>•</span>
+                        <span>by {diary.author_username}</span>
+                    </div>
                 </div>
 
-                <div className="p-6 border-t bg-gray-50">
-                    <Link
-                        to={`/pairs/${pairId}/diaries`}
-                        className="text-indigo-600 hover:underline"
-                    >
-                        &larr; 一覧に戻る
-                    </Link>
+                {/* Content - Using TiptapEditor in read-only mode */}
+                <div className="flex-grow">
+                    <TiptapEditor
+                        content={diary.content}
+                        onChange={() => { }}
+                        editable={false}
+                    />
                 </div>
+
             </div>
         </Layout>
     );
