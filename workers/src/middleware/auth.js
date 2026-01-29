@@ -26,6 +26,8 @@ export async function requireAuth(c, next) {
         return c.json({ success: false, error: 'セッションが無効です' }, 401);
     }
 
+    console.log(`[Auth] Session valid for user_id: ${session.user_id}`);
+
     c.set('userId', session.user_id);
     await next();
 }

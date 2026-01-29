@@ -9,17 +9,11 @@ const app = new Hono();
 // CORS設定
 app.use('/*', cors({
     origin: (origin) => {
-        // ローカル開発環境を許可
-        if (origin === 'http://localhost:5173') {
-            return origin;
-        }
-        // Cloudflare Pagesのすべてのサブドメインを許可
-        if (origin && origin.endsWith('.pages.dev')) {
-            return origin;
-        }
-        // それ以外は拒否
-        return 'http://localhost:5173';
+        if (origin === 'http://localhost:5173') return origin;
+        if (origin && origin.endsWith('.pages.dev')) return origin;
+        return 'https://nikky.pages.dev';
     },
+    allowHeaders: ['Content-Type', 'X-Session-ID', 'Authorization'],
     credentials: true,
 }));
 

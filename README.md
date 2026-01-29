@@ -1,6 +1,6 @@
 # 交換日記アプリ
 
-このプロジェクトは、ReactとNode.jsを使用した交換日記Webアプリケーションです。
+このプロジェクトは、ReactとCloudflare Workersを使用して構築された交換日記Webアプリケーションです。
 
 ## 概要
 
@@ -9,9 +9,9 @@
 
 ## 技術スタック
 
-- **フロントエンド**: React, Vite, TailwindCSS
-- **バックエンド**: Node.js, Express
-- **データベース**: SQLite (better-sqlite3)
+- **フロントエンド**: React, Vite, TailwindCSS (Cloudflare Pages)
+- **バックエンド**: Cloudflare Workers (Hono)
+- **データベース**: Cloudflare D1 (SQLite-based)
 
 ## セットアップ
 
@@ -22,16 +22,29 @@
 
 ### 開発環境の起動
 
-1. バックエンドのセットアップ
+1. **バックエンド（Cloudflare Workers）のセットアップ**
    ```bash
-   cd server
+   cd workers
    npm install
+   # ローカルデータベースの初期化（初回のみ）
+   npx wrangler d1 migrations apply diary-db --local
+   # サーバー起動 (localhost:8787)
    npm run dev
    ```
 
-2. フロントエンドのセットアップ
+2. **フロントエンド（Vite）のセットアップ**
    ```bash
    cd client
    npm install
+   # サーバー起動 (localhost:5173)
    npm run dev
    ```
+
+> [!NOTE]
+> クライアントの `client/.env` ファイルには `VITE_API_URL=http://localhost:8787/api` が設定されている必要があります。
+
+## ディレクトリ構成
+
+- `client/`: フロントエンド (React + Vite)
+- `workers/`: バックエンド (Cloudflare Workers + D1)
+- `server/`: (レガシー) Express版バックエンド。現在は Workers 版が推奨されています。
