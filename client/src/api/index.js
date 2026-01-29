@@ -2,10 +2,19 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-    withCredentials: true // Cookie-based session authentication
+});
+
+// リクエストインターセプター（セッションIDをヘッダーに付与）
+api.interceptors.request.use(config => {
+    const sessionId = localStorage.getItem('nikky_session_id');
+    if (sessionId) {
+        config.headers['X-Session-ID'] = sessionId;
+    }
+    return config;
 });
 
 // レスポンスインターセプター（エラーハンドリング用）
+
 api.interceptors.response.use(
     (response) => response,
     (error) => {

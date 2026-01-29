@@ -24,13 +24,23 @@ export function AuthProvider({ children }) {
 
     const login = async (username, password) => {
         const response = await authAPI.login(username, password);
-        setUser(response.data.data);
+        const { sessionId, ...userData } = response.data.data;
+        if (sessionId) {
+            localStorage.setItem('nikky_session_id', sessionId);
+        }
+        setUser(userData);
     };
 
+
     const logout = async () => {
-        await authAPI.logout();
-        setUser(null);
+        try {
+            await authAPI.logout();
+        } finally {
+            localStorage.removeItem('nikky_session_id');
+            setUser(null);
+        }
     };
+
 
     return (
         <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>

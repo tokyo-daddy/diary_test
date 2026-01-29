@@ -58,7 +58,7 @@ app.get('/:pairId/drafts', requireAuth, async (c) => {
         const userId = c.get('userId');
 
         const sql = `
-            SELECT id, title, created_at
+            SELECT id, pair_id, title, content, created_at
             FROM diaries
             WHERE pair_id = ? AND author_id = ? AND is_draft = 1
             ORDER BY created_at DESC
