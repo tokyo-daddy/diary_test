@@ -95,12 +95,15 @@ app.get('/', requireAuth, async (c) => {
         const sql = `
             SELECT 
                 p.id, 
+                p.is_solo,
                 p.created_at,
                 CASE 
+                    WHEN p.is_solo = 1 THEN NULL
                     WHEN p.user1_id = ? THEN u2.id
                     ELSE u1.id
                 END as partner_id,
                 CASE 
+                    WHEN p.is_solo = 1 THEN '自分の部屋'
                     WHEN p.user1_id = ? THEN u2.username
                     ELSE u1.username
                 END as partner_username
@@ -108,6 +111,7 @@ app.get('/', requireAuth, async (c) => {
             LEFT JOIN users u1 ON p.user1_id = u1.id
             LEFT JOIN users u2 ON p.user2_id = u2.id
             WHERE p.user1_id = ? OR p.user2_id = ?
+            ORDER BY p.is_solo DESC, p.created_at DESC
         `;
 
         // D1のallメソッドは結果セットをresultsプロパティに持つオブジェクトを返す
@@ -119,6 +123,7 @@ app.get('/', requireAuth, async (c) => {
             id: p.id,
             partner_id: p.partner_id,
             partner_username: p.partner_username || '(パートナー待ち)',
+            is_solo: p.is_solo === 1,
             created_at: p.created_at
         }));
 
@@ -126,6 +131,46 @@ app.get('/', requireAuth, async (c) => {
             success: true,
             data: {
                 pairs: formattedPairs
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500);
+    }
+});
+
+// 指定ペアの詳細取得
+app.get('/:id', requireAuth, async (c) => {
+    try {
+        const id = c.req.param('id');
+        const db = c.env.DB;
+        const userId = c.get('userId');
+
+        const sql = `
+            SELECT 
+                p.*,
+                CASE 
+                    WHEN p.user1_id = ? THEN u2.username
+                    ELSE u1.username
+                END as partner_username
+            FROM pairs p
+            LEFT JOIN users u1 ON p.user1_id = u1.id
+            LEFT JOIN users u2 ON p.user2_id = u2.id
+            WHERE p.id = ? AND (p.user1_id = ? OR p.user2_id = ?)
+        `;
+
+        const pair = await db.prepare(sql).bind(userId, id, userId, userId).first();
+
+        if (!pair) {
+            return c.json({ success: false, error: 'ペアが見つかりません' }, 404);
+        }
+
+        return c.json({
+            success: true,
+            data: {
+                ...pair,
+                is_solo: pair.is_solo === 1
             }
         });
 

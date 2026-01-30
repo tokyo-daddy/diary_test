@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { diariesAPI } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 import TiptapEditor from '../components/TiptapEditor';
 
 export default function DiaryFormPage() {
     const { pairId, diaryId } = useParams();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const isEdit = !!diaryId;
 
@@ -53,7 +55,14 @@ export default function DiaryFormPage() {
     const fetchDiary = async () => {
         try {
             const response = await diariesAPI.get(pairId, diaryId);
-            const { title, content, is_draft } = response.data.data;
+            const { title, content, is_draft, author_id } = response.data.data;
+
+            // Check authorization
+            if (author_id !== user.id) {
+                navigate(`/pairs/${pairId}/diaries/${diaryId}`);
+                return;
+            }
+
             setTitle(title);
             setContent(content);
             setLastSavedTitle(title);
@@ -154,7 +163,7 @@ export default function DiaryFormPage() {
                 {/* Save Actions - Fixed top right or inline? 
                     Design image didn't show buttons. Let's put them top right or bottom right cleanly.
                     Let's put them top right for easy access. */}
-                <div className="absolute top-4 right-4 flex items-center gap-6 z-10 transition-opacity duration-300">
+                <div className="fixed top-6 right-6 flex items-center gap-6 z-10 transition-opacity duration-300">
                     {/* Draft Save / Saved Indicator / Revert to Draft */}
                     <div className="flex items-center">
                         {!isCurrentlyDraft ? (
@@ -186,8 +195,8 @@ export default function DiaryFormPage() {
                             onClick={(e) => handleSubmit(e, false)}
                             disabled={saving || (!title.trim() && (!content || content === '<p></p>'))}
                             className={`text-sm px-5 py-1.5 rounded-full shadow-sm transition-all animate-fade-in ${(saving || (!title.trim() && (!content || content === '<p></p>')))
-                                    ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                                : 'bg-blue-500 text-white hover:bg-blue-600'
                                 }`}
                         >
                             {!isCurrentlyDraft ? '更新する' : (saving ? '保存中...' : '公開する')}
@@ -198,25 +207,28 @@ export default function DiaryFormPage() {
                 </div>
 
 
-                {/* Header / Title */}
-                <div className="mb-8 mt-12 text-center">
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        onKeyDown={handleTitleKeyDown}
-                        placeholder={titlePlaceholder}
-                        className="w-full text-center text-black placeholder-gray-200 text-3xl font-bold bg-transparent border-none focus:ring-0 focus:outline-none p-0 tracking-wide"
-                    />
-                </div>
+                {/* Main Content Container */}
+                <div className="max-w-[620px] mx-auto w-full">
+                    {/* Header / Title */}
+                    <div className="mb-8 mt-12 text-left">
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            onKeyDown={handleTitleKeyDown}
+                            placeholder={titlePlaceholder}
+                            className="w-full text-left text-black placeholder-gray-200 text-3xl font-bold bg-transparent border-none focus:ring-0 focus:outline-none p-0 tracking-wide"
+                        />
+                    </div>
 
-                {/* Editor */}
-                <div className="flex-grow">
-                    <TiptapEditor
-                        content={content}
-                        onChange={setContent}
-                        editable={!saving}
-                    />
+                    {/* Editor */}
+                    <div className="flex-grow">
+                        <TiptapEditor
+                            content={content}
+                            onChange={setContent}
+                            editable={!saving}
+                        />
+                    </div>
                 </div>
 
             </div>

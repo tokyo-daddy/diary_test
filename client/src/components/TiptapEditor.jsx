@@ -18,7 +18,7 @@ export default function TiptapEditor({ content, onChange, editable = true }) {
         },
         editorProps: {
             attributes: {
-                class: 'prose prose-lg mx-auto focus:outline-none min-h-[500px] text-black',
+                class: 'prose prose-lg max-w-none focus:outline-none min-h-[500px] text-black',
 
 
 

@@ -46,7 +46,9 @@ export const pairsAPI = {
     join: (invite_code) =>
         api.post('/pairs/join', { invite_code }),
     list: () =>
-        api.get('/pairs')
+        api.get('/pairs'),
+    get: (id) =>
+        api.get(`/pairs/${id}`)
 };
 
 // 日記API

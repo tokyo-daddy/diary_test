@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { diariesAPI } from '../api';
 
-export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to }) {
+export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to, showAuthor = true }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
@@ -63,17 +63,19 @@ export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to })
 
                 className="block relative aspect-[4/3] bg-[#eff6ff] rounded-[32px] p-6 mb-4 transition-all hover:shadow-lg hover:translate-y-[-4px]"
             >
-                {/* Three dots menu button */}
-                <button
-                    onClick={toggleMenu}
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors z-20"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="12" cy="5" r="1"></circle>
-                        <circle cx="12" cy="19" r="1"></circle>
-                    </svg>
-                </button>
+                {/* Three dots menu button - Only for author */}
+                {currentUserId === diary.author_id && (
+                    <button
+                        onClick={toggleMenu}
+                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 transition-colors z-20"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="1"></circle>
+                            <circle cx="12" cy="5" r="1"></circle>
+                            <circle cx="12" cy="19" r="1"></circle>
+                        </svg>
+                    </button>
+                )}
 
                 {/* Dropdown Menu */}
                 {isMenuOpen && (
@@ -109,7 +111,7 @@ export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to })
 
                 {/* Preview "Paper" */}
                 <div className="w-full h-full bg-white rounded-lg shadow-sm flex flex-col items-center pt-8 px-6 overflow-hidden">
-                    <div className="w-full text-[10px] font-bold text-gray-800 mb-2 truncate text-center">
+                    <div className="w-full text-[10px] font-bold text-gray-800 mb-2 truncate text-left">
                         {diary.title}
                     </div>
                     {/* Content Preview - Reflecting layout via HTML rendering */}
@@ -132,7 +134,7 @@ export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to })
                     {diary.title}
                 </h3>
                 <p className="text-xs text-gray-400">
-                    {formattedDate}
+                    {formattedDate}{showAuthor && ` • by ${diary.author_username}`}
                 </p>
             </div>
         </div>

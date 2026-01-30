@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { diariesAPI } from '../api';
+import { diariesAPI, pairsAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 import TiptapEditor from '../components/TiptapEditor';
@@ -10,6 +10,7 @@ export default function DiaryDetailPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [diary, setDiary] = useState(null);
+    const [isSolo, setIsSolo] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -18,8 +19,12 @@ export default function DiaryDetailPage() {
 
     const fetchDiary = async () => {
         try {
-            const response = await diariesAPI.get(pairId, diaryId);
-            setDiary(response.data.data);
+            const [diaryRes, pairRes] = await Promise.all([
+                diariesAPI.get(pairId, diaryId),
+                pairsAPI.get(pairId)
+            ]);
+            setDiary(diaryRes.data.data);
+            setIsSolo(pairRes.data.data.is_solo);
         } catch (error) {
             console.error(error);
             if (error.response?.status === 404) {
@@ -69,7 +74,7 @@ export default function DiaryDetailPage() {
                 </div>
 
                 {/* Actions - Top Right */}
-                <div className="absolute top-4 right-4 flex items-center gap-6 z-10">
+                <div className="fixed top-6 right-6 flex items-center gap-6 z-10">
                     {isAuthor && (
                         <div className="flex items-center gap-4">
                             <Link
@@ -88,25 +93,32 @@ export default function DiaryDetailPage() {
                     )}
                 </div>
 
-                {/* Header / Title */}
-                <div className="mb-8 mt-12 text-center">
-                    <h1 className="text-3xl font-bold text-black tracking-wide">
-                        {diary.title}
-                    </h1>
-                    <div className="mt-4 flex justify-center items-center gap-2 text-xs text-gray-400">
-                        <span>{new Date(diary.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' })}</span>
-                        <span>•</span>
-                        <span>by {diary.author_username}</span>
+                {/* Main Content Container */}
+                <div className="max-w-[620px] mx-auto w-full">
+                    {/* Header / Title */}
+                    <div className="mb-8 mt-12 text-left">
+                        <h1 className="text-3xl font-bold text-black tracking-wide">
+                            {diary.title}
+                        </h1>
+                        <div className="mt-4 flex justify-start items-center gap-2 text-xs text-gray-400">
+                            <span>{new Date(diary.created_at).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' })}</span>
+                            {!isSolo && (
+                                <>
+                                    <span>•</span>
+                                    <span>by {diary.author_username}</span>
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
 
-                {/* Content - Using TiptapEditor in read-only mode */}
-                <div className="flex-grow">
-                    <TiptapEditor
-                        content={diary.content}
-                        onChange={() => { }}
-                        editable={false}
-                    />
+                    {/* Content - Using TiptapEditor in read-only mode */}
+                    <div className="flex-grow">
+                        <TiptapEditor
+                            content={diary.content}
+                            onChange={() => { }}
+                            editable={false}
+                        />
+                    </div>
                 </div>
 
             </div>

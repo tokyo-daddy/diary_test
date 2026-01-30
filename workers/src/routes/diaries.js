@@ -58,10 +58,11 @@ app.get('/:pairId/drafts', requireAuth, async (c) => {
         const userId = c.get('userId');
 
         const sql = `
-            SELECT id, pair_id, title, content, created_at
-            FROM diaries
-            WHERE pair_id = ? AND author_id = ? AND is_draft = 1
-            ORDER BY created_at DESC
+            SELECT d.id, d.pair_id, d.author_id, d.title, d.content, d.created_at, u.username as author_username
+            FROM diaries d
+            JOIN users u ON d.author_id = u.id
+            WHERE d.pair_id = ? AND d.author_id = ? AND d.is_draft = 1
+            ORDER BY d.created_at DESC
         `;
         const { results } = await db.prepare(sql)
             .bind(pairId, userId)

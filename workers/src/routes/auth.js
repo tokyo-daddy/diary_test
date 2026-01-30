@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import bcrypt from 'bcryptjs';
 import { requireAuth, generateSessionId } from '../middleware/auth';
+import { generateInviteCode } from '../utils/generateCode';
 
 const auth = new Hono();
 
@@ -31,15 +32,28 @@ auth.post('/register', async (c) => {
     // パスワードハッシュ化
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // ユーザー作成
-    const result = await db
-        .prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')
-        .bind(username, passwordHash)
+    // ユーザー作成 (account_idも生成)
+    const accountId = generateInviteCode().toLowerCase();
+
+    // トランザクション的に実行したいが、D1のbatchを使用する
+    const userInsert = db.prepare('INSERT INTO users (username, password_hash, account_id) VALUES (?, ?, ?)')
+        .bind(username, passwordHash, accountId);
+
+    const results = await db.batch([
+        userInsert
+    ]);
+
+    const userId = results[0].meta.last_row_id;
+
+    // 「自分の部屋」を作成
+    const soloInviteCode = `SOLO-${accountId.toUpperCase()}`;
+    await db.prepare('INSERT INTO pairs (user1_id, is_solo, invite_code) VALUES (?, ?, ?)')
+        .bind(userId, 1, soloInviteCode)
         .run();
 
     const user = await db
-        .prepare('SELECT id, username, created_at FROM users WHERE id = ?')
-        .bind(result.meta.last_row_id)
+        .prepare('SELECT id, username, account_id, created_at FROM users WHERE id = ?')
+        .bind(userId)
         .first();
 
     return c.json({ success: true, data: user });
@@ -103,7 +117,7 @@ auth.get('/me', requireAuth, async (c) => {
     const db = c.env.DB;
 
     const user = await db
-        .prepare('SELECT id, username FROM users WHERE id = ?')
+        .prepare('SELECT id, username, account_id FROM users WHERE id = ?')
         .bind(userId)
         .first();
 

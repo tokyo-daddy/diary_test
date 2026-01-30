@@ -12,8 +12,7 @@
   --color-text-muted: #6b7280;
 
   /* Fonts */
-  --font-sans: "Inter", sans-serif;
-  --font-serif: "Zen Old Mincho", serif;
+  --font-sans: "Inter", "Noto Sans JP", sans-serif;
 }
 
 @layer base {

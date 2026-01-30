@@ -41,10 +41,16 @@ export default function PairsPage() {
                     <Link
                         key={pair.id}
                         to={`/pairs/${pair.id}/diaries`}
-                        className="block bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
+                        className={`block p-6 rounded-lg shadow hover:shadow-md transition-shadow ${pair.is_solo ? 'bg-indigo-50 border-2 border-indigo-200' : 'bg-white'
+                            }`}
                     >
-                        <div className="text-lg font-bold mb-2">
-                            パートナー: {pair.partner_username}
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="text-lg font-bold text-indigo-900">
+                                {pair.is_solo ? '自分の部屋' : `パートナー: ${pair.partner_username}`}
+                            </div>
+                            {pair.is_solo && (
+                                <span className="bg-indigo-200 text-indigo-700 text-xs px-2 py-1 rounded">個人</span>
+                            )}
                         </div>
                         <div className="text-gray-500 text-sm">
                             開始日: {new Date(pair.created_at).toLocaleDateString()}
