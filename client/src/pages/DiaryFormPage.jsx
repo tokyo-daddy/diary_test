@@ -139,7 +139,7 @@ export default function DiaryFormPage() {
     if (loading) return <Layout><div className="flex justify-center items-center h-screen text-gray-400">Loading...</div></Layout>;
 
     return (
-        <Layout>
+        <Layout hideHeader={true}>
             <div className="max-w-[1500px] mx-auto px-4 py-8 min-h-[calc(100vh-100px)] flex flex-col relative">
 
                 {/* Back Button - Top Left Corner */}
