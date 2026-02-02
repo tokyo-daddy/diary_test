@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8787/api',
 });
 
 // リクエストインターセプター（セッションIDをヘッダーに付与）
@@ -48,7 +48,9 @@ export const pairsAPI = {
     list: () =>
         api.get('/pairs'),
     get: (id) =>
-        api.get(`/pairs/${id}`)
+        api.get(`/pairs/${id}`),
+    delete: (id) =>
+        api.delete(`/pairs/${id}`)
 };
 
 // 日記API
@@ -64,7 +66,9 @@ export const diariesAPI = {
     delete: (pairId, diaryId) =>
         api.delete(`/diaries/${pairId}/${diaryId}`),
     drafts: (pairId) =>
-        api.get(`/diaries/${pairId}/drafts`)
+        api.get(`/diaries/${pairId}/drafts`),
+    getCalendar: (pairId, year, month) =>
+        api.get(`/diaries/${pairId}/calendar/${year}/${month}`)
 };
 
 export default api;

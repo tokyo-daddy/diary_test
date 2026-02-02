@@ -8,6 +8,7 @@ import CreatePairPage from './pages/CreatePairPage';
 import DiaryListPage from './pages/DiaryListPage';
 import DiaryDetailPage from './pages/DiaryDetailPage';
 import DiaryFormPage from './pages/DiaryFormPage';
+import CalendarPage from './pages/CalendarPage';
 
 function App() {
   return (
@@ -29,6 +30,11 @@ function App() {
           <Route path="/pairs/:pairId/diaries" element={
             <ProtectedRoute>
               <DiaryListPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/pairs/:pairId/calendar" element={
+            <ProtectedRoute>
+              <CalendarPage />
             </ProtectedRoute>
           } />
           <Route path="/pairs/:pairId/diaries/new" element={

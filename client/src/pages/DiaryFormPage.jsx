@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { diariesAPI } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
@@ -9,6 +9,8 @@ export default function DiaryFormPage() {
     const { pairId, diaryId } = useParams();
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const queryDate = searchParams.get('date');
     const isEdit = !!diaryId;
 
     const [title, setTitle] = useState('');
@@ -16,6 +18,8 @@ export default function DiaryFormPage() {
     const [loading, setLoading] = useState(isEdit);
     const [saving, setSaving] = useState(false);
     const [isCurrentlyDraft, setIsCurrentlyDraft] = useState(true);
+    // ターゲット日付（新規作成時はクエリパラメータor今日、編集時は既存の日付）
+    const [targetDate, setTargetDate] = useState(queryDate ? new Date(queryDate) : new Date());
 
 
     // For dirty checking
@@ -23,8 +27,7 @@ export default function DiaryFormPage() {
     const [lastSavedContent, setLastSavedContent] = useState('');
 
     // Date formatting for placeholder
-    const getFormattedDate = () => {
-        const date = new Date();
+    const getFormattedDate = (date) => {
         const formatter = new Intl.DateTimeFormat('ja-JP', {
             month: '2-digit',
             day: '2-digit',
@@ -38,7 +41,7 @@ export default function DiaryFormPage() {
         return `${month}月${day}日 (${weekday})`;
     };
 
-    const titlePlaceholder = getFormattedDate();
+    const titlePlaceholder = getFormattedDate(targetDate);
 
     // Initial load
     useEffect(() => {
@@ -55,7 +58,7 @@ export default function DiaryFormPage() {
     const fetchDiary = async () => {
         try {
             const response = await diariesAPI.get(pairId, diaryId);
-            const { title, content, is_draft, author_id } = response.data.data;
+            const { title, content, is_draft, author_id, created_at } = response.data.data;
 
             // Check authorization
             if (author_id !== user.id) {
@@ -68,6 +71,7 @@ export default function DiaryFormPage() {
             setLastSavedTitle(title);
             setLastSavedContent(content);
             setIsCurrentlyDraft(is_draft);
+            setTargetDate(new Date(created_at));
 
         } catch (error) {
             console.error(error);
@@ -106,7 +110,12 @@ export default function DiaryFormPage() {
                 setTitle(titleToSave);
             }
 
-            const data = { title: titleToSave, content, is_draft: isDraft };
+            const data = {
+                title: titleToSave,
+                content,
+                is_draft: isDraft,
+                created_at: targetDate // Explicitly save the date (from query param or existing)
+            };
 
             if (isEdit) {
                 await diariesAPI.update(pairId, diaryId, data);

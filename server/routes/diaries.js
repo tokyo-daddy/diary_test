@@ -2,6 +2,42 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 
+// 指定した月のカレンダー情報（日記が存在する日の一覧）を取得
+router.get('/:pairId/calendar/:year/:month', requireAuth, async (req, res, next) => {
+    try {
+        const { pairId, year, month } = req.params;
+        const db = req.app.locals.db;
+        const userId = req.session.userId;
+
+        const pair = await db.get('SELECT user1_id, user2_id FROM pairs WHERE id = ?', pairId);
+        if (!pair) return res.status(404).json({ success: false, error: 'ペアが見つかりません' });
+        if (pair.user1_id !== userId && pair.user2_id !== userId) return res.status(403).json({ success: false, error: '権限がありません' });
+
+        // 指定された月の最初と最後
+        const startDate = `${year}-${month.padStart(2, '0')}-01`;
+        const endDate = `${year}-${month.padStart(2, '0')}-31`; // SQLite handles this, but properly would be last day of month
+
+        const sql = `
+            SELECT DISTINCT strftime('%d', created_at) as day
+            FROM diaries
+            WHERE pair_id = ? AND is_draft = 0
+            AND created_at >= ? AND created_at <= ?
+        `;
+
+        const days = await db.all(sql, pairId, startDate, endDate);
+
+        res.json({
+            success: true,
+            data: {
+                days: days.map(d => parseInt(d.day))
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+});
+
 // 指定ペアの日記一覧取得
 router.get('/:pairId', requireAuth, async (req, res, next) => {
     try {

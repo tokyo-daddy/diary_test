@@ -5,10 +5,15 @@ import { useAuth } from '../contexts/AuthContext';
 import Layout from '../components/Layout';
 import DiaryCard from '../components/DiaryCard';
 import FloatingActionButton from '../components/FloatingActionButton';
+import { Calendar as CalendarIcon, List } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function DiaryListPage() {
     const { pairId } = useParams();
     const { user } = useAuth();
+    const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const dateFilter = searchParams.get('date');
     const [diaries, setDiaries] = useState([]);
     const [drafts, setDrafts] = useState([]);
     const [pair, setPair] = useState(null);
@@ -37,27 +42,56 @@ export default function DiaryListPage() {
         }
     };
 
+    const filteredDiaries = dateFilter
+        ? diaries.filter(d => {
+            const dDate = new Date(d.created_at);
+            const filterDate = new Date(dateFilter);
+            return dDate.getFullYear() === filterDate.getFullYear() &&
+                dDate.getMonth() === filterDate.getMonth() &&
+                dDate.getDate() === filterDate.getDate();
+        })
+        : diaries;
+
     if (loading) return <Layout><div className="text-center py-10">Loading...</div></Layout>;
 
     return (
         <Layout>
             <div className="space-y-12">
-                <div className="max-w-6xl mx-auto w-full">
-                    <h1 className="text-2xl font-bold text-black font-sans">
+                <div className="max-w-6xl mx-auto w-full flex justify-between items-center">
+                    <h1
+                        className="text-2xl font-bold text-black font-sans cursor-pointer hover:opacity-70 transition-opacity"
+                        onClick={() => navigate(`/pairs/${pairId}/diaries`)}
+                    >
                         {pair?.is_solo ? '自分の部屋' : `${pair?.partner_username || 'パートナー'}との交換日記`}
                     </h1>
+                    <button
+                        onClick={() => navigate(`/pairs/${pairId}/calendar`)}
+                        className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                        <CalendarIcon size={18} />
+                        <span>カレンダー</span>
+                    </button>
                 </div>
 
-                {diaries.length === 0 ? (
-                    <div className="text-center py-20">
-                        <p className="text-gray-400 font-sans mb-4">まだ日記がありません</p>
-                        <p className="text-sm text-gray-400">右上のボタンから最初の日記を書いてみましょう</p>
+                {dateFilter && (
+                    <div className="max-w-6xl mx-auto mb-8 flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-gray-800 font-sans border-l-4 border-black pl-4">
+                            {new Date(dateFilter).toLocaleDateString('ja-JP')} の日記
+                        </h2>
+                    </div>
+                )}
 
+                {filteredDiaries.length === 0 ? (
+                    <div className="text-center py-20">
+                        <p className="text-gray-400 font-sans mb-4">
+                            {dateFilter ? 'この日の日記はありません' : 'まだ日記がありません'}
+                        </p>
+                        {!dateFilter && <p className="text-sm text-gray-400">右上のボタンから最初の日記を書いてみましょう</p>}
                     </div>
                 ) : (
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-                            {diaries.map(diary => (
+                            {filteredDiaries.map(diary => (
                                 <DiaryCard
                                     key={diary.id}
                                     diary={diary}
@@ -98,7 +132,7 @@ export default function DiaryListPage() {
 
 
             <div className="h-20"></div> {/* Spacer for FAB */}
-            <FloatingActionButton to={`/pairs/${pairId}/diaries/new`} />
+            <FloatingActionButton to={`/pairs/${pairId}/diaries/new${dateFilter ? `?date=${dateFilter}` : ''}`} />
         </Layout>
     );
 }

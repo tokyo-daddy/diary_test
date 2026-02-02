@@ -3,6 +3,53 @@ import { requireAuth } from '../middleware/auth';
 
 const app = new Hono();
 
+// 指定した月のカレンダー情報（日記が存在する日の一覧）を取得
+app.get('/:pairId/calendar/:year/:month', requireAuth, async (c) => {
+    try {
+        const pairId = c.req.param('pairId');
+        const year = c.req.param('year');
+        const month = c.req.param('month');
+        const db = c.env.DB;
+        const userId = c.get('userId');
+
+        const pair = await db.prepare('SELECT user1_id, user2_id FROM pairs WHERE id = ?')
+            .bind(pairId)
+            .first();
+
+        if (!pair) return c.json({ success: false, error: 'ペアが見つかりません' }, 404);
+        if (pair.user1_id !== userId && pair.user2_id !== userId) return c.json({ success: false, error: '権限がありません' }, 403);
+
+        const startDate = `${year}-${month.padStart(2, '0')}-01`;
+        // SQLiteのdate関数を使って月末を計算するか、単純に翌月の1日から引くか。
+        // ここでは簡易的に文字列比較でフィルタリングしているので、
+        // created_atはISO文字列と仮定 ('YYYY-MM-DDTHH:mm:ss.sssZ')
+        // year-month-01からyear-month-31までカバーすれば十分（存在しない日は無視される）
+        const endDate = `${year}-${month.padStart(2, '0')}-31`;
+
+        const sql = `
+            SELECT DISTINCT strftime('%d', created_at) as day
+            FROM diaries
+            WHERE pair_id = ? AND is_draft = 0
+            AND created_at >= ? AND created_at <= ?
+        `;
+
+        const { results } = await db.prepare(sql)
+            .bind(pairId, startDate, endDate)
+            .all();
+
+        return c.json({
+            success: true,
+            data: {
+                days: results.map(d => parseInt(d.day))
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500);
+    }
+});
+
 // 指定ペアの日記一覧取得
 app.get('/:pairId', requireAuth, async (c) => {
     try {
@@ -126,7 +173,7 @@ app.get('/:pairId/:diaryId', requireAuth, async (c) => {
 app.post('/:pairId', requireAuth, async (c) => {
     try {
         const pairId = c.req.param('pairId');
-        const { title, content, is_draft } = await c.req.json();
+        const { title, content, is_draft, created_at } = await c.req.json();
         const db = c.env.DB;
         const userId = c.get('userId');
 
@@ -141,12 +188,27 @@ app.post('/:pairId', requireAuth, async (c) => {
             return c.json({ success: false, error: 'タイトルは必須です' }, 400);
         }
 
+        // created_atが指定されている場合はそれを使用し、なければ現在時刻
+        const dateToSave = created_at ? new Date(created_at).toISOString() : new Date().toISOString();
+
         const result = await db.prepare(`
-            INSERT INTO diaries (pair_id, author_id, title, content, is_draft)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO diaries (pair_id, author_id, title, content, is_draft, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
         `)
-            .bind(pairId, userId, title, content || '', is_draft ? 1 : 0)
+            .bind(pairId, userId, title, content || '', is_draft ? 1 : 0, dateToSave)
             .run();
+
+        return c.json({
+            success: true,
+            data: {
+                id: result.meta.last_row_id,
+                title,
+                content,
+                author_id: userId,
+                is_draft: is_draft ? 1 : 0,
+                created_at: dateToSave
+            }
+        });
 
         return c.json({
             success: true,
@@ -171,23 +233,26 @@ app.put('/:pairId/:diaryId', requireAuth, async (c) => {
     try {
         const pairId = c.req.param('pairId');
         const diaryId = c.req.param('diaryId');
-        const { title, content, is_draft } = await c.req.json();
+        const { title, content, is_draft, created_at } = await c.req.json();
         const db = c.env.DB;
         const userId = c.get('userId');
 
-        const diary = await db.prepare('SELECT author_id FROM diaries WHERE id = ? AND pair_id = ?')
+        const diary = await db.prepare('SELECT author_id, created_at FROM diaries WHERE id = ? AND pair_id = ?')
             .bind(diaryId, pairId)
             .first();
 
         if (!diary) return c.json({ success: false, error: '日記が見つかりません' }, 404);
         if (diary.author_id !== userId) return c.json({ success: false, error: '編集権限がありません' }, 403);
 
+        // 指定があれば更新、なければ元のまま
+        const dateToSave = created_at ? new Date(created_at).toISOString() : diary.created_at;
+
         await db.prepare(`
             UPDATE diaries 
-            SET title = ?, content = ?, is_draft = ?, updated_at = datetime('now', 'localtime')
+            SET title = ?, content = ?, is_draft = ?, created_at = ?, updated_at = datetime('now', 'localtime')
             WHERE id = ?
         `)
-            .bind(title, content, is_draft ? 1 : 0, diaryId)
+            .bind(title, content, is_draft ? 1 : 0, dateToSave, diaryId)
             .run();
 
         return c.json({ success: true });

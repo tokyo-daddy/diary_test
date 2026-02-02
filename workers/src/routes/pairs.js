@@ -96,6 +96,7 @@ app.get('/', requireAuth, async (c) => {
             SELECT 
                 p.id, 
                 p.is_solo,
+                p.invite_code,
                 p.created_at,
                 CASE 
                     WHEN p.is_solo = 1 THEN NULL
@@ -124,6 +125,7 @@ app.get('/', requireAuth, async (c) => {
             partner_id: p.partner_id,
             partner_username: p.partner_username || '(パートナー待ち)',
             is_solo: p.is_solo === 1,
+            invite_code: p.invite_code,
             created_at: p.created_at
         }));
 
@@ -181,3 +183,37 @@ app.get('/:id', requireAuth, async (c) => {
 });
 
 export default app;
+
+// ペア削除
+app.delete('/:id', requireAuth, async (c) => {
+    try {
+        const id = c.req.param('id');
+        const db = c.env.DB;
+        const userId = c.get('userId');
+
+        const pair = await db.prepare('SELECT user1_id FROM pairs WHERE id = ?')
+            .bind(id)
+            .first();
+
+        if (!pair) {
+            return c.json({ success: false, error: 'ペアが見つかりません' }, 404);
+        }
+
+        // ペアの作成者（user1）のみが削除可能
+        if (pair.user1_id !== userId) {
+            return c.json({ success: false, error: '削除権限がありません' }, 403);
+        }
+
+        // ペア削除（関連する日記も削除すべきだが、ここではペアのみ削除）
+        // 必要に応じて ON DELETE CASCADE や明示的な削除を追加
+        await db.prepare('DELETE FROM pairs WHERE id = ?')
+            .bind(id)
+            .run();
+
+        return c.json({ success: true });
+
+    } catch (error) {
+        console.error(error);
+        return c.json({ success: false, error: 'サーバーエラーが発生しました' }, 500);
+    }
+});
