@@ -62,7 +62,7 @@ export default function DiaryListPage() {
                         className="text-2xl font-bold text-black font-sans cursor-pointer hover:opacity-70 transition-opacity"
                         onClick={() => navigate(`/pairs/${pairId}/diaries`)}
                     >
-                        {pair?.is_solo ? '自分の部屋' : `${pair?.partner_username || 'パートナー'}との交換日記`}
+                        {pair?.is_solo ? '自分の部屋' : `${pair?.partner_username || 'パートナー'}`}
                     </h1>
                     <button
                         onClick={() => navigate(`/pairs/${pairId}/calendar`)}
@@ -98,6 +98,7 @@ export default function DiaryListPage() {
                                     currentUserId={user.id}
                                     onDeleteSuccess={fetchData}
                                     showAuthor={!pair?.is_solo}
+                                    isSolo={pair?.is_solo}
                                 />
                             ))}
                         </div>
@@ -108,7 +109,7 @@ export default function DiaryListPage() {
 
 
             {/* Drafts Section */}
-            {drafts.length > 0 && (
+            {drafts.length > 0 && !pair?.is_solo && (
                 <div className="mt-16 pt-16 border-t border-gray-100">
                     <div className="max-w-6xl mx-auto w-full">
                         <h2 className="text-sm font-bold text-gray-400 mb-8 text-left uppercase tracking-[0.2em] font-sans">下書き</h2>
@@ -123,6 +124,7 @@ export default function DiaryListPage() {
                                     onDeleteSuccess={fetchData}
                                     to={`/pairs/${pairId}/diaries/${draft.id}/edit`}
                                     showAuthor={!pair?.is_solo}
+                                    isSolo={pair?.is_solo}
                                 />
                             ))}
                         </div>

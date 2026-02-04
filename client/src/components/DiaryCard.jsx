@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { diariesAPI } from '../api';
 
-export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to, showAuthor = true }) {
+export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to, showAuthor = true, isSolo = false }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
     const navigate = useNavigate();
@@ -47,6 +47,25 @@ export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to, s
         e.stopPropagation();
         setIsMenuOpen(!isMenuOpen);
     };
+
+    const handleToggleVisibility = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            await diariesAPI.update(diary.pair_id, diary.id, {
+                title: diary.title,
+                content: diary.content,
+                is_draft: !diary.is_draft,
+                created_at: diary.created_at
+            });
+            if (onDeleteSuccess) onDeleteSuccess(); // reuse callback to refresh list
+        } catch (error) {
+            console.error(error);
+            alert('変更に失敗しました');
+        }
+        setIsMenuOpen(false);
+    };
+
 
     // Date formatting: 2026/1/28
     const formattedDate = new Date(diary.created_at).toLocaleDateString('ja-JP', {
@@ -93,6 +112,27 @@ export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to, s
                             </svg>
                             編集する
                         </button>
+                        {!isSolo && (
+                            <button
+                                onClick={handleToggleVisibility}
+                                className="w-full flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            >
+                                <svg className="mr-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    {diary.is_draft ? (
+                                        <>
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                            <circle cx="12" cy="12" r="3"></circle>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                            <line x1="1" y1="1" x2="23" y2="23"></line>
+                                        </>
+                                    )}
+                                </svg>
+                                {diary.is_draft ? '公開する' : '下書きに戻す'}
+                            </button>
+                        )}
                         <button
                             onClick={handleDelete}
                             className="w-full flex items-center px-4 py-3 text-sm text-red-400 hover:bg-red-50 transition-colors"

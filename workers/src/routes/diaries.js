@@ -12,7 +12,8 @@ app.get('/:pairId/calendar/:year/:month', requireAuth, async (c) => {
         const db = c.env.DB;
         const userId = c.get('userId');
 
-        const pair = await db.prepare('SELECT user1_id, user2_id FROM pairs WHERE id = ?')
+        const isSoloSql = `SELECT user1_id, user2_id, (user2_id IS NULL) as is_solo FROM pairs WHERE id = ?`;
+        const pair = await db.prepare(isSoloSql)
             .bind(pairId)
             .first();
 
@@ -20,16 +21,12 @@ app.get('/:pairId/calendar/:year/:month', requireAuth, async (c) => {
         if (pair.user1_id !== userId && pair.user2_id !== userId) return c.json({ success: false, error: '権限がありません' }, 403);
 
         const startDate = `${year}-${month.padStart(2, '0')}-01`;
-        // SQLiteのdate関数を使って月末を計算するか、単純に翌月の1日から引くか。
-        // ここでは簡易的に文字列比較でフィルタリングしているので、
-        // created_atはISO文字列と仮定 ('YYYY-MM-DDTHH:mm:ss.sssZ')
-        // year-month-01からyear-month-31までカバーすれば十分（存在しない日は無視される）
         const endDate = `${year}-${month.padStart(2, '0')}-31`;
 
         const sql = `
             SELECT DISTINCT strftime('%d', created_at) as day
             FROM diaries
-            WHERE pair_id = ? AND is_draft = 0
+            WHERE pair_id = ? ${pair.is_solo ? '' : 'AND is_draft = 0'}
             AND created_at >= ? AND created_at <= ?
         `;
 
@@ -58,7 +55,8 @@ app.get('/:pairId', requireAuth, async (c) => {
         const db = c.env.DB;
         const userId = c.get('userId');
 
-        const pair = await db.prepare('SELECT user1_id, user2_id FROM pairs WHERE id = ?')
+        const isSoloSql = `SELECT user1_id, user2_id, (user2_id IS NULL) as is_solo FROM pairs WHERE id = ?`;
+        const pair = await db.prepare(isSoloSql)
             .bind(pairId)
             .first();
 
@@ -70,15 +68,12 @@ app.get('/:pairId', requireAuth, async (c) => {
         }
 
         const sortOrder = order === 'asc' ? 'ASC' : 'DESC';
-        // プレースホルダーを使ったORDER BY句の構築には注意が必要だが、ここでは固定値の選択なので安全
-        // しかし、D1/SQLiteでORDER BY句にバインドパラメータを使うことはできないため、文字列操作で構築する
-        // SQLインジェクションを防ぐため、sortOrderは検証済みの値のみを使用する
 
         const sql = `
             SELECT d.*, u.username as author_username 
             FROM diaries d
             JOIN users u ON d.author_id = u.id
-            WHERE d.pair_id = ? AND d.is_draft = 0
+            WHERE d.pair_id = ? ${pair.is_solo ? '' : 'AND d.is_draft = 0'}
             ORDER BY d.created_at ${sortOrder}
         `;
 
@@ -103,9 +98,18 @@ app.get('/:pairId/drafts', requireAuth, async (c) => {
         const pairId = c.req.param('pairId');
         const db = c.env.DB;
         const userId = c.get('userId');
+        const isSoloSql = `SELECT (user2_id IS NULL) as is_solo FROM pairs WHERE id = ?`;
+        const pair = await db.prepare(isSoloSql).bind(pairId).first();
+
+        if (pair?.is_solo) {
+            return c.json({
+                success: true,
+                data: { drafts: [] }
+            });
+        }
 
         const sql = `
-            SELECT d.id, d.pair_id, d.author_id, d.title, d.content, d.created_at, u.username as author_username
+            SELECT d.id, d.pair_id, d.author_id, d.title, d.content, d.is_draft, d.created_at, u.username as author_username
             FROM diaries d
             JOIN users u ON d.author_id = u.id
             WHERE d.pair_id = ? AND d.author_id = ? AND d.is_draft = 1

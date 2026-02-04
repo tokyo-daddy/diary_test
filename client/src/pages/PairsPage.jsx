@@ -36,88 +36,123 @@ export default function PairsPage() {
         }
     };
 
-    if (loading) return <Layout><div>Loading...</div></Layout>;
+    if (loading) return <Layout><div className="flex justify-center items-center h-screen text-gray-400">Loading...</div></Layout>;
+
+    const soloRooms = pairs.filter(p => p.is_solo);
+    const friendRooms = pairs.filter(p => !p.is_solo);
+    // Assuming there is only one solo room per user based on current logic, but we map just in case.
+    const myRoom = soloRooms[0];
 
     return (
         <Layout>
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">ペア一覧</h1>
-                <Link
-                    to="/pairs/create"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-                >
-                    ペアを新しく作る / 参加する
-                </Link>
-            </div>
+            <div className="max-w-5xl mx-auto px-4 py-8">
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {pairs.map(pair => {
-                    const isWaiting = !pair.partner_id && !pair.is_solo;
-
-                    if (isWaiting) {
-                        return (
-                            <div
-                                key={pair.id}
-                                className="block p-6 rounded-lg shadow bg-white relative"
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="text-lg font-bold text-gray-500">
-                                        パートナー待ち
-                                    </div>
-                                    <button
-                                        onClick={() => handleDelete(pair.id)}
-                                        className="text-gray-400 hover:text-red-500 p-1"
-                                        title="削除"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
-                                </div>
-                                <div className="mt-4 mb-2">
-                                    <p className="text-sm text-gray-500 mb-1">招待コード</p>
-                                    <p className="text-2xl font-mono font-bold text-indigo-600 tracking-wider">
-                                        {pair.invite_code}
-                                    </p>
-                                </div>
-                                <div className="text-gray-400 text-sm mt-4">
-                                    作成日: {new Date(pair.created_at).toLocaleDateString()}
-                                </div>
-                            </div>
-                        );
-                    }
-
-                    return (
+                {/* My Room Section */}
+                <section className="mb-16">
+                    <h2 className="text-sm font-bold text-gray-400 mb-6 uppercase tracking-wider">My Room</h2>
+                    {myRoom ? (
                         <Link
-                            key={pair.id}
-                            to={`/pairs/${pair.id}/diaries`}
-                            className={`block p-6 rounded-lg shadow hover:shadow-md transition-shadow ${pair.is_solo ? 'bg-indigo-50 border-2 border-indigo-200' : 'bg-white'
-                                }`}
+                            to={`/pairs/${myRoom.id}/diaries`}
+                            className="group block relative w-full aspect-3/1 md:aspect-4/1 bg-linear-to-br from-pastel-blue to-pastel-green rounded-[32px] p-8 md:p-12 transition-all hover:shadow-lg hover:scale-[1.01]"
                         >
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="text-lg font-bold text-indigo-900">
-                                    {pair.is_solo ? `${user?.username}の部屋` : `パートナー: ${pair.partner_username}`}
+                            <div className="flex flex-col h-full justify-center relative z-10">
+                                <div>
+                                    <span className="inline-block px-3 py-1 bg-white/60 backdrop-blur-sm rounded-full text-xs font-medium text-blue-600 mb-3">
+                                        Personal
+                                    </span>
+                                    <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">自分の部屋</h3>
+                                    <div className="text-sm font-medium text-gray-400">
+                                        <span>作成日: {new Date(myRoom.created_at).toLocaleDateString()}</span>
+                                    </div>
                                 </div>
-                                {pair.is_solo && (
-                                    <span className="bg-indigo-200 text-indigo-700 text-xs px-2 py-1 rounded">個人</span>
-                                )}
                             </div>
-                            <div className="text-gray-500 text-sm">
-                                開始日: {new Date(pair.created_at).toLocaleDateString()}
-                            </div>
+                            {/* Decorative background circle */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/40 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4 pointer-events-none"></div>
                         </Link>
-                    );
-                })}
+                    ) : (
+                        <div className="bg-gray-50 rounded-3xl p-8 text-center text-gray-400 border-2 border-dashed border-gray-100">
+                            自分の部屋がまだありません。
+                        </div>
+                    )}
+                </section>
 
-                {pairs.length === 0 && (
-                    <div className="col-span-full text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed">
-                        <p className="text-gray-500 mb-4">まだペアがありません</p>
+                {/* Friends List Section */}
+                <section>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Friends</h2>
                         <Link
                             to="/pairs/create"
-                            className="text-indigo-600 font-bold hover:underline"
+                            className="bg-gray-900 text-white px-4 py-2 rounded-full text-xs font-medium hover:bg-gray-800 transition-colors shadow-sm"
                         >
-                            ペアを作成して交換日記を始めましょう
+                            + 新しい友達
                         </Link>
                     </div>
-                )}
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {friendRooms.map(pair => {
+                            const isWaiting = !pair.partner_id;
+
+                            if (isWaiting) {
+                                return (
+                                    <div
+                                        key={pair.id}
+                                        className="relative block p-6 h-full bg-white rounded-3xl border border-gray-100 shadow-sm"
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <span className="px-2.5 py-1 bg-yellow-50 text-yellow-600 rounded-lg text-xs font-bold">
+                                                WAITING
+                                            </span>
+                                            <button
+                                                onClick={() => handleDelete(pair.id)}
+                                                className="text-gray-300 hover:text-red-400 transition-colors"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+
+                                        <div className="text-center py-4">
+                                            <p className="text-xs text-gray-400 mb-2">招待コード</p>
+                                            <p className="text-2xl font-mono font-bold text-gray-800 tracking-wider select-all">
+                                                {pair.invite_code}
+                                            </p>
+                                        </div>
+                                        <div className="absolute bottom-6 left-6 right-6 text-center text-xs text-gray-400">
+                                            パートナーを待っています...
+                                        </div>
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <Link
+                                    key={pair.id}
+                                    to={`/pairs/${pair.id}/diaries`}
+                                    className="block p-6 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all h-full"
+                                >
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className="px-2.5 py-1 bg-purple-50 text-purple-600 rounded-lg text-xs font-bold">
+                                            FRIEND
+                                        </span>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-800 mb-1">
+                                        {pair.partner_username}
+                                    </h3>
+                                    <div className="flex items-center text-xs text-gray-300">
+                                        <span>開始: {new Date(pair.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                </Link>
+                            );
+                        })}
+
+                        {friendRooms.length === 0 && (
+                            <div className="col-span-full py-12 text-center">
+                                <p className="text-gray-300 mb-2">まだ友達とのペアがありません</p>
+                                <Link to="/pairs/create" className="text-sm text-blue-500 hover:underline">
+                                    新しいペアを作成する
+                                </Link>
+                            </div>
+                        )}
+                    </div>
+                </section>
             </div>
         </Layout>
     );

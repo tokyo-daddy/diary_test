@@ -68,7 +68,9 @@ export const diariesAPI = {
     drafts: (pairId) =>
         api.get(`/diaries/${pairId}/drafts`),
     getCalendar: (pairId, year, month) =>
-        api.get(`/diaries/${pairId}/calendar/${year}/${month}`)
+        api.get(`/diaries/${pairId}/calendar/${year}/${month}`),
+    getPair: (pairId) =>
+        api.get(`/pairs/${pairId}`)
 };
 
 export default api;

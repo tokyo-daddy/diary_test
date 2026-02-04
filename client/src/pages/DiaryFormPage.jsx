@@ -17,14 +17,18 @@ export default function DiaryFormPage() {
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(isEdit);
     const [saving, setSaving] = useState(false);
-    const [isCurrentlyDraft, setIsCurrentlyDraft] = useState(true);
-    // ターゲット日付（新規作成時はクエリパラメータor今日、編集時は既存の日付）
+    const [isCurrentlyDraft, setIsCurrentlyDraft] = useState(false);
     const [targetDate, setTargetDate] = useState(queryDate ? new Date(queryDate) : new Date());
+    const [isSolo, setIsSolo] = useState(false);
+    const [createdDiaryId, setCreatedDiaryId] = useState(null); // for auto-save new diary
+    const [lastSavedDraftStatus, setLastSavedDraftStatus] = useState(false); // track draft status separately for auto-save
 
 
     // For dirty checking
     const [lastSavedTitle, setLastSavedTitle] = useState('');
     const [lastSavedContent, setLastSavedContent] = useState('');
+    const autoSaveTimeoutRef = useRef(null);
+    const editorRef = useRef(null);
 
     // Date formatting for placeholder
     const getFormattedDate = (date) => {
@@ -45,15 +49,27 @@ export default function DiaryFormPage() {
 
     // Initial load
     useEffect(() => {
-        if (isEdit) {
-            fetchDiary();
-        } else {
-            // New diary: Init clean state
-            setLastSavedTitle('');
-            setLastSavedContent('');
+        fetchInitialData();
+    }, [diaryId]);
+
+    const fetchInitialData = async () => {
+        setLoading(true);
+        try {
+            const pairResponse = await diariesAPI.getPair(pairId);
+            setIsSolo(pairResponse.data.data.is_solo);
+
+            if (isEdit) {
+                await fetchDiary();
+            } else {
+                setLastSavedTitle('');
+                setLastSavedContent('');
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
             setLoading(false);
         }
-    }, [diaryId]);
+    };
 
     const fetchDiary = async () => {
         try {
@@ -71,6 +87,7 @@ export default function DiaryFormPage() {
             setLastSavedTitle(title);
             setLastSavedContent(content);
             setIsCurrentlyDraft(is_draft);
+            setLastSavedDraftStatus(is_draft);
             setTargetDate(new Date(created_at));
 
         } catch (error) {
@@ -91,8 +108,79 @@ export default function DiaryFormPage() {
         if (e.key === 'Tab' && title === '') {
             e.preventDefault();
             setTitle(titlePlaceholder);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            editorRef.current?.focus();
         }
     };
+
+    // Auto-save for all rooms
+    useEffect(() => {
+        if (loading) return;
+
+        // Don't auto-save if nothing to save
+        const hasContent = title.trim() || (content && content !== '<p></p>');
+        if (!hasContent) return;
+
+        // Check if dirty (content or draft status changed)
+        const contentDirty = title !== lastSavedTitle || content !== lastSavedContent;
+        const draftStatusDirty = isCurrentlyDraft !== lastSavedDraftStatus;
+        if (!contentDirty && !draftStatusDirty) return;
+
+        // Clear previous timeout
+        if (autoSaveTimeoutRef.current) {
+            clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        // Set new timeout for auto-save (1.5 seconds debounce)
+        autoSaveTimeoutRef.current = setTimeout(async () => {
+            await performAutoSave();
+        }, 1500);
+
+        return () => {
+            if (autoSaveTimeoutRef.current) {
+                clearTimeout(autoSaveTimeoutRef.current);
+            }
+        };
+    }, [title, content, isCurrentlyDraft, loading]);
+
+    const performAutoSave = async () => {
+        if (saving) return;
+        setSaving(true);
+
+        try {
+            let titleToSave = title;
+            if (!titleToSave.trim()) {
+                titleToSave = titlePlaceholder;
+                setTitle(titleToSave);
+            }
+
+            const data = {
+                title: titleToSave,
+                content,
+                is_draft: isSolo ? false : isCurrentlyDraft,
+                created_at: targetDate
+            };
+
+            const currentDiaryId = diaryId || createdDiaryId;
+
+            if (currentDiaryId) {
+                await diariesAPI.update(pairId, currentDiaryId, data);
+            } else {
+                const res = await diariesAPI.create(pairId, data);
+                setCreatedDiaryId(res.data.data.id);
+            }
+
+            setLastSavedTitle(titleToSave);
+            setLastSavedContent(content);
+            setLastSavedDraftStatus(isSolo ? false : isCurrentlyDraft);
+        } catch (error) {
+            console.error('Auto-save failed:', error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
 
     const handleSubmit = async (e, isDraft = false) => {
         e.preventDefault();
@@ -113,7 +201,7 @@ export default function DiaryFormPage() {
             const data = {
                 title: titleToSave,
                 content,
-                is_draft: isDraft,
+                is_draft: isSolo ? false : isDraft,
                 created_at: targetDate // Explicitly save the date (from query param or existing)
             };
 
@@ -172,46 +260,18 @@ export default function DiaryFormPage() {
                 {/* Save Actions - Fixed top right or inline? 
                     Design image didn't show buttons. Let's put them top right or bottom right cleanly.
                     Let's put them top right for easy access. */}
-                <div className="fixed top-6 right-6 flex items-center gap-6 z-10 transition-opacity duration-300">
-                    {/* Draft Save / Saved Indicator / Revert to Draft */}
-                    <div className="flex items-center">
-                        {!isCurrentlyDraft ? (
+                <div className="fixed top-6 right-6 flex items-center gap-4 z-10 transition-opacity duration-300">
+                    {/* Visibility Dropdown - only for pair rooms */}
+                    {!isSolo && (
+                        <div className="relative">
                             <button
-                                onClick={(e) => handleSubmit(e, true)}
-                                disabled={saving}
-                                className="text-sm text-gray-400 hover:text-gray-800 transition-colors"
+                                type="button"
+                                onClick={() => setIsCurrentlyDraft(!isCurrentlyDraft)}
+                                className="text-sm px-4 py-2 rounded-2xl bg-white shadow-sm text-gray-600 border-none focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer hover:bg-gray-50 transition-colors"
                             >
-                                下書きに戻す
+                                {isCurrentlyDraft ? '下書き' : '公開'}
                             </button>
-                        ) : isDirty ? (
-                            <button
-                                onClick={(e) => handleSubmit(e, true)}
-                                disabled={saving}
-                                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                下書き保存
-                            </button>
-                        ) : (
-                            <span className="text-sm text-gray-300">保存済み</span>
-                        )}
-                    </div>
-
-
-                    {/* Publish / Update Button */}
-                    {!!(isDirty || isCurrentlyDraft) && (
-
-                        <button
-                            onClick={(e) => handleSubmit(e, false)}
-                            disabled={saving || (!title.trim() && (!content || content === '<p></p>'))}
-                            className={`text-sm px-5 py-1.5 rounded-full shadow-sm transition-all animate-fade-in ${(saving || (!title.trim() && (!content || content === '<p></p>')))
-                                ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                                : 'bg-blue-500 text-white hover:bg-blue-600'
-                                }`}
-                        >
-                            {!isCurrentlyDraft ? '更新する' : (saving ? '保存中...' : '公開する')}
-                        </button>
-
-
+                        </div>
                     )}
                 </div>
 
@@ -233,6 +293,7 @@ export default function DiaryFormPage() {
                     {/* Editor */}
                     <div className="flex-grow">
                         <TiptapEditor
+                            ref={editorRef}
                             content={content}
                             onChange={setContent}
                             editable={!saving}
