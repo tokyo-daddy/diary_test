@@ -73,4 +73,39 @@ export const diariesAPI = {
         api.get(`/pairs/${pairId}`)
 };
 
+// 公開日記API
+export const publicDiariesAPI = {
+    list: (accountId) =>
+        api.get(`/public-diaries/${accountId}`),
+    get: (accountId, diaryId) =>
+        api.get(`/public-diaries/${accountId}/${diaryId}`),
+    myList: () =>
+        api.get('/public-diaries'),
+    create: (data) =>
+        api.post('/public-diaries', data),
+    update: (diaryId, data) =>
+        api.put(`/public-diaries/${diaryId}`, data),
+    delete: (diaryId) =>
+        api.delete(`/public-diaries/${diaryId}`),
+};
+
+// フレンドAPI
+export const friendsAPI = {
+    search: (accountId) =>
+        api.get(`/friends/search/${accountId}`),
+    sendRequest: (receiverId) =>
+        api.post('/friends/request', { receiver_id: receiverId }),
+    getRequests: () =>
+        api.get('/friends/requests'),
+    accept: (friendshipId) =>
+        api.post(`/friends/accept/${friendshipId}`),
+    reject: (friendshipId) =>
+        api.post(`/friends/reject/${friendshipId}`),
+    list: () =>
+        api.get('/friends'),
+    remove: (friendshipId) =>
+        api.delete(`/friends/${friendshipId}`),
+};
+
 export default api;
+

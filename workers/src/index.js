@@ -3,6 +3,8 @@ import { cors } from 'hono/cors';
 import authRoutes from './routes/auth';
 import pairsRoutes from './routes/pairs';
 import diariesRoutes from './routes/diaries';
+import publicDiariesRoutes from './routes/public-diaries';
+import friendsRoutes from './routes/friends';
 
 const app = new Hono();
 
@@ -23,5 +25,7 @@ app.use('/*', cors({
 app.route('/api/auth', authRoutes);
 app.route('/api/pairs', pairsRoutes);
 app.route('/api/diaries', diariesRoutes);
+app.route('/api/public-diaries', publicDiariesRoutes);
+app.route('/api/friends', friendsRoutes);
 
 export default app;

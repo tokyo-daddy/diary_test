@@ -5,7 +5,7 @@ export default function FloatingActionButton({ to }) {
     return (
         <Link
             to={to}
-            className="fixed top-8 right-8 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-700 hover:scale-105 transition-all duration-300 z-50 group"
+            className="fixed bottom-8 right-8 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-700 hover:scale-105 transition-all duration-300 z-50 group"
         >
 
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 group-hover:rotate-12 transition-transform">

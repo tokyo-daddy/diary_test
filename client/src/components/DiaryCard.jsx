@@ -80,7 +80,7 @@ export default function DiaryCard({ diary, currentUserId, onDeleteSuccess, to, s
             <Link
                 to={linkDestination}
 
-                className="block relative aspect-[4/3] bg-[#eff6ff] rounded-[32px] p-6 mb-4 transition-all hover:shadow-lg hover:translate-y-[-4px]"
+                className={`block relative aspect-[4/3] ${diary.is_draft ? 'bg-gray-50' : 'bg-[#eff6ff]'} rounded-[32px] p-6 mb-4 transition-all hover:shadow-lg hover:translate-y-[-4px]`}
             >
                 {/* Three dots menu button - Only for author */}
                 {currentUserId === diary.author_id && (

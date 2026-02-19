@@ -86,7 +86,7 @@ export default function DiaryListPage() {
                         <p className="text-gray-400 font-sans mb-4">
                             {dateFilter ? 'この日の日記はありません' : 'まだ日記がありません'}
                         </p>
-                        {!dateFilter && <p className="text-sm text-gray-400">右上のボタンから最初の日記を書いてみましょう</p>}
+                        {!dateFilter && <p className="text-sm text-gray-400">右下のボタンから最初の日記を書いてみましょう</p>}
                     </div>
                 ) : (
                     <div className="max-w-6xl mx-auto">

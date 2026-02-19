@@ -93,6 +93,8 @@ auth.post('/login', async (c) => {
         data: {
             id: user.id,
             username: user.username,
+            account_id: user.account_id,
+            created_at: user.created_at,
             sessionId: sessionId
         }
     });
@@ -117,7 +119,7 @@ auth.get('/me', requireAuth, async (c) => {
     const db = c.env.DB;
 
     const user = await db
-        .prepare('SELECT id, username, account_id FROM users WHERE id = ?')
+        .prepare('SELECT id, username, account_id, created_at FROM users WHERE id = ?')
         .bind(userId)
         .first();
 

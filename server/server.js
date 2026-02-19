@@ -7,6 +7,8 @@ const { initDatabase } = require('./db/init');
 const authRoutes = require('./routes/auth');
 const pairsRoutes = require('./routes/pairs');
 const diariesRoutes = require('./routes/diaries');
+const publicDiariesRoutes = require('./routes/public-diaries');
+const friendsRoutes = require('./routes/friends');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -41,6 +43,8 @@ initDatabase().then(db => {
     app.use('/api/auth', authRoutes);
     app.use('/api/pairs', pairsRoutes);
     app.use('/api/diaries', diariesRoutes);
+    app.use('/api/public-diaries', publicDiariesRoutes);
+    app.use('/api/friends', friendsRoutes);
 
     // エラーハンドリング
     app.use(errorHandler);
